@@ -1,0 +1,19 @@
+#!/usr/bin/env python
+import sys
+
+sys.path.append('..')
+
+from miniwan.wannet.wannet import WanNet
+from mininet.cli import CLI
+from mininet.log import setLogLevel
+
+LOG_LEVEL = 'info'
+
+if __name__ == '__main__':
+    setLogLevel(LOG_LEVEL)
+
+    net = WanNet(topo_desc_file='../conf/loop.yaml')
+    net.start()
+    net.pingAll(1)
+    CLI(net)
+    net.stop()
