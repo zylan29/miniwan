@@ -28,6 +28,7 @@ class WanTopo(Topo):
             _, router_port_id = self.port(host_name, router_name)
             region.connect_lan(router_port_id)
         for link in topo_desc['links']:
+            # TODO: use defaults
             bw = link['bw'] if 'bw' in link else 100
             delay = str(link['delay']) + 'ms' if 'delay' in link else '0.1ms'
             loss = link['loss'] if 'loss' in link else 0.01

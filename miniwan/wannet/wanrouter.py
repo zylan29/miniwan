@@ -9,9 +9,6 @@ class WanRouter(Switch):
     def __init__(self, name, **kwargs):
         kwargs['inNamespace'] = True
         super(WanRouter, self).__init__(name, **kwargs)
-        # Enable forwarding on the router
-        self.cmd('sysctl net.ipv4.ip_forward=1')
-        self.waitOutput()
 
     @staticmethod
     def setup():
@@ -35,6 +32,9 @@ class BgpRouter(WanRouter):
         self.bgpd_cfg_file = ''
 
     def start(self, controllers):
+        # Enable forwarding on the router
+        self.cmd('sysctl net.ipv4.ip_forward=1')
+        self.waitOutput()
         self.generate_zebra_cfg()
         self.generate_bgp_cfg()
         self.strart_zebra()
@@ -51,10 +51,11 @@ class BgpRouter(WanRouter):
         lo_str = 'interface lo\n' + \
                  '    ip address 127.0.0.1/8\n'
         intf_str = ''
-        for intf_name, intf_ip in self.interfaces:
-            if intf_name == 'lo':
+        for intf_id, intf_ip in self.interfaces:
+            if intf_id == 0:
                 lo_str += '    ip address {}\n'.format(intf_ip)
             else:
+                intf_name = self.intfs[intf_id]
                 intf_str += 'interface {}\n'.format(intf_name) + \
                             '    ip address {}\n'.format(intf_ip)
         # TODO: log
@@ -71,17 +72,21 @@ class BgpRouter(WanRouter):
             f.write(zebra_cfg_str)
 
     def generate_bgp_cfg(self, dst_path='/etc/quagga/miniwan'):
+        # TODO: find a way to use best path.
         host_name_str = 'hostname {}\n'.format(self.name)
         passwd_str = 'password en\n' + \
                      'enable password en\n'
         router_str = 'router bgp {}\n'.format(self.asn) + \
                      '    bgp router-id {}\n'.format(self.router_id) + \
-                     '    network ' + NETWORK_FORMATTER.format(self.asn) + '\n'
+                     '    network ' + NETWORK_FORMATTER.format(self.asn) + '\n' + \
+                     '    redistribute connected\n'
         for neighbor_ip, neighbor_asn in self.neighbors:
             router_str += '    neighbor {} remote-as {}\n'.format(neighbor_ip, neighbor_asn)
-            # TODO: timers
-            router_str += '    neighbor {} timers 5 5\n'.format(neighbor_ip)
-        # TODO: log
+            # TODO: neighbor setting
+            router_str += '    neighbor {} ebgp-multihop\n'.format(neighbor_ip)
+            router_str += '    neighbor {} next-hop-self\n'.format(neighbor_ip)
+            router_str += '    neighbor {} timers 3 15\n'.format(neighbor_ip)
+        # TODO: where to log
         log_str = 'log stdout\n'
 
         bgpd_cfg_str = host_name_str + passwd_str + router_str + log_str

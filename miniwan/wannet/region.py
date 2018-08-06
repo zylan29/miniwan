@@ -22,9 +22,10 @@ class Region(object):
         self.num_wan_ip = 0
         self.router = None
 
-        self.interfaces = [('lo', LO_IP_FORMATTER.format(self.asn, self.asn))]  # interfaces name:ip
+        self.interfaces = [(0, LO_IP_FORMATTER.format(self.asn, self.asn))]
+        self.neighbors = []
+        self.asn_table = {}
 
-        self.neighbors = []  # wan neighbors remote-ip:remote-as
         self.router_name = ROUTER_NAME_FORMATTER.format(self.name)
         self.host_name = HOST_NAME_FORMATTER.format(self.name)
         self.host_gw = HOST_GW_FORMATTER.format(self.asn)
@@ -41,24 +42,19 @@ class Region(object):
         self.num_wan_ip += 1
         return WAN_IP_FORMATTER.format(self.asn, self.num_wan_ip)
 
-    def get_interface_name(self, interface_id):
-        return INTERFACE_NAME_FORMATTER.format(self.get_router_name(), interface_id)
-
-    def add_interface(self, *iface_name_ip):
-        self.interfaces.append(iface_name_ip)
+    def add_interface(self, *iface_id_ip):
+        self.interfaces.append(iface_id_ip)
 
     def add_neighbor(self, *neighbor_ip_asn):
         self.neighbors.append(neighbor_ip_asn)
 
     def connect_lan(self, router_interface_id):
-        router_intf = self.get_interface_name(router_interface_id)
-        self.add_interface(router_intf, self.host_gw + LAN_MASK)
+        self.add_interface(router_interface_id, self.host_gw + LAN_MASK)
 
     def connect_wan(self, neighbor, interface_ids):
         assert isinstance(neighbor, Region)
         assert len(interface_ids) == 2
-        local_intf, remote_intf = self.get_interface_name(interface_ids[0]), neighbor.get_interface_name(
-            interface_ids[1])
+        local_intf_id, remote_intf_id = interface_ids
         if self.asn < neighbor.asn:
             local_ip = self.get_next_wan_ip()
             remote_ip = self.get_next_wan_ip()
@@ -66,8 +62,8 @@ class Region(object):
             local_ip = neighbor.get_next_wan_ip()
             remote_ip = neighbor.get_next_wan_ip()
 
-        self.add_interface(local_intf, local_ip)
-        neighbor.add_interface(remote_intf, remote_ip)
+        self.add_interface(local_intf_id, local_ip)
+        neighbor.add_interface(remote_intf_id, remote_ip)
         self.add_neighbor(remote_ip.split('/')[0], neighbor.asn)
         neighbor.add_neighbor(local_ip.split('/')[0], self.asn)
 
