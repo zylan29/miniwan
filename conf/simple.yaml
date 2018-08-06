@@ -1,11 +1,11 @@
 defaults:
   lan_link:
     default_bw: 100
-    default_delay: 0.1
+    default_delay: 0.1ms
     default_loss: 0.001
   wan_link:
     default_bw: 10
-    default_delay: 10
+    default_delay: 10ms
     default_loss: 0.1
 regions:
 - name: region1
@@ -14,5 +14,5 @@ links:
 - src: region1
   dst: region2
   bw: 100
-  delay: 1
+  delay: 1ms
   loss: 0.1

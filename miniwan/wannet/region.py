@@ -1,12 +1,18 @@
-ROUTER_NAME_FORMATTER = 'r_{}'
-HOST_NAME_FORMATTER = 'h_{}'
+ROUTER_NAME_FORMATTER = 'r{}'
+HOST_NAME_FORMATTER = 'h{}'
 INTERFACE_NAME_FORMATTER = '{}-eth{}'
 
-LO_IP_FORMATTER = '{}.{}.0.1/32'  # ASN, ASN
-WAN_IP_FORMATTER = '{}.0.0.{}/30'  # ASN, Interface_ID
+# LO_IP_FORMATTER = '{}.{}.0.1/32'  # ASN, ASN
+# WAN_IP_FORMATTER = '{}.0.0.{}/30'  # ASN, Interface_ID
+# LAN_MASK = '/24'
+# HOST_GW_FORMATTER = '{}.0.254.1'  # ASN
+# HOST_IP_FORMATTER = '{}.0.254.2' + LAN_MASK  # ASN
+
+LO_IP_FORMATTER = '10.10.0.{}/32'  # ASN, ASN
+WAN_IP_FORMATTER = '10.255.{}.{}/30'  # ASN, Interface_ID
 LAN_MASK = '/24'
-HOST_GW_FORMATTER = '{}.0.1.1'  # ASN
-HOST_IP_FORMATTER = '{}.0.1.2' + LAN_MASK  # ASN
+HOST_GW_FORMATTER = '10.{}.254.1'  # ASN
+HOST_IP_FORMATTER = '10.{}.254.2' + LAN_MASK  # ASN
 
 
 class Region(object):
@@ -24,10 +30,9 @@ class Region(object):
 
         self.interfaces = [(0, LO_IP_FORMATTER.format(self.asn, self.asn))]
         self.neighbors = []
-        self.asn_table = {}
 
-        self.router_name = ROUTER_NAME_FORMATTER.format(self.name)
-        self.host_name = HOST_NAME_FORMATTER.format(self.name)
+        self.router_name = ROUTER_NAME_FORMATTER.format(self.asn)
+        self.host_name = HOST_NAME_FORMATTER.format(self.asn)
         self.host_gw = HOST_GW_FORMATTER.format(self.asn)
         self.host_ip = HOST_IP_FORMATTER.format(self.asn)
         self.lo_ip = LO_IP_FORMATTER.format(self.asn, self.asn)
@@ -64,14 +69,14 @@ class Region(object):
 
         self.add_interface(local_intf_id, local_ip)
         neighbor.add_interface(remote_intf_id, remote_ip)
-        self.add_neighbor(remote_ip.split('/')[0], neighbor.asn)
-        neighbor.add_neighbor(local_ip.split('/')[0], self.asn)
+        self.add_neighbor(remote_ip, neighbor.asn)
+        neighbor.add_neighbor(local_ip, self.asn)
 
     def get_router_info(self):
         router_info = {
             'interfaces': self.interfaces,
             'neighbors': self.neighbors,
             'asn': self.asn,
-            'router_id': self.lo_ip.split('/')[0]
+            'local_ip': self.lo_ip
         }
         return router_info

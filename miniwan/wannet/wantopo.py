@@ -11,6 +11,10 @@ class WanTopo(Topo):
             topo_desc = yaml.load(f)
         if topo_desc is None:
             raise ValueError('Error: Load topology from {}'.format(topo_file))
+
+        lan_link_defaults = topo_desc['defaults']['lan_link']
+        wan_link_defaults = topo_desc['defaults']['wan_link']
+
         regions = {}
         for region in topo_desc['regions']:
             region_name = region['name']
@@ -23,15 +27,16 @@ class WanTopo(Topo):
             self.addHost(host_name, ip=host_ip, defaultRoute='via {}'.format(host_gw))
             router_name = region.get_router_name()
             self.addSwitch(router_name)
-            # TODO:set LAN bw, delay and loss
-            self.addLink(host_name, router_name)
+            bw = lan_link_defaults['default_bw']
+            delay = lan_link_defaults['default_delay']
+            loss = lan_link_defaults['default_loss']
+            self.addLink(host_name, router_name, bw=bw, delay=delay, loss=loss)
             _, router_port_id = self.port(host_name, router_name)
             region.connect_lan(router_port_id)
         for link in topo_desc['links']:
-            # TODO: use defaults
-            bw = link['bw'] if 'bw' in link else 100
-            delay = str(link['delay']) + 'ms' if 'delay' in link else '0.1ms'
-            loss = link['loss'] if 'loss' in link else 0.01
+            bw = link['bw'] if 'bw' in link else wan_link_defaults['default_bw']
+            delay = str(link['delay']) if 'delay' in link else wan_link_defaults['default_delay']
+            loss = link['loss'] if 'loss' in link else wan_link_defaults['default_loss']
             src_region = regions[link['src']]
             dst_region = regions[link['dst']]
             src_router = src_region.get_router_name()
