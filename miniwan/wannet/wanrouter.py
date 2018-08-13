@@ -9,6 +9,14 @@ class WanRouter(Switch):
     def __init__(self, name, **kwargs):
         kwargs['inNamespace'] = True
         super(WanRouter, self).__init__(name, **kwargs)
+        # Enable forwarding on the router
+
+    def enable_route(self):
+        self.cmd('sysctl -w net.ipv4.ip_forward=1')
+        self.waitOutput()
+
+    def start_route(self):
+        raise NotImplementedError()
 
     @staticmethod
     def setup():
@@ -23,12 +31,11 @@ class WanRouter(Switch):
 
 class ZebraRouter(WanRouter):
     def __init__(self, name, **kwargs):
-        self.interfaces = kwargs['interfaces']
+        self.lan_interfaces = kwargs['lan_interfaces']
+        self.wan_interfaces = kwargs['wan_interfaces']
+        print(self.wan_interfaces)
         super(ZebraRouter, self).__init__(name, **kwargs)
         self.zebra_cfg_file = ''
-        # Enable forwarding on the router
-        self.cmd('sysctl net.ipv4.ip_forward=1')
-        self.waitOutput()
 
     def generate_zebra_cfg(self, dst_path='/etc/quagga/miniwan'):
         host_str = 'hostname {}\n'.format(self.name)
@@ -37,7 +44,7 @@ class ZebraRouter(WanRouter):
         lo_str = 'interface lo\n' + \
                  '    ip address 127.0.0.1/8\n'
         intf_str = ''
-        for intf_id, intf_ip in self.interfaces:
+        for intf_id, intf_ip in self.lan_interfaces + self.wan_interfaces:
             if intf_id == 0:
                 lo_str += '    ip address {}\n'.format(intf_ip)
             else:
@@ -57,7 +64,7 @@ class ZebraRouter(WanRouter):
         with open(self.zebra_cfg_file, 'w') as f:
             f.write(zebra_cfg_str)
 
-    def strart_zebra(self):
+    def start_zebra(self):
         if self.zebra_cfg_file == '' or not os.path.exists(self.zebra_cfg_file):
             raise Exception('Should generate zebra configuration file first.')
         self.cmd('/usr/lib/quagga/zebra -f {} -d -i /tmp/zebra-{}.pid > logs/{}-zebra-stdout 2>&1'.format(
@@ -69,6 +76,10 @@ class ZebraRouter(WanRouter):
         self.cmd('killall -9 zebra bgpd ospfd')
         self.waitOutput()
 
+    def stop(self):
+        self.stop_quagga()
+        self.deleteIntfs()
+
 
 class BgpRouter(ZebraRouter):
     def __init__(self, name, **kwargs):
@@ -79,15 +90,11 @@ class BgpRouter(ZebraRouter):
         super(BgpRouter, self).__init__(name, **kwargs)
         self.bgpd_cfg_file = ''
 
-    def start(self, controllers):
+    def start_route(self):
         self.generate_zebra_cfg()
         self.generate_bgp_cfg()
-        self.strart_zebra()
+        self.start_zebra()
         self.start_bgpd()
-
-    def stop(self):
-        super(BgpRouter, self).stop()
-        self.stop_quagga()
 
     def generate_bgp_cfg(self, dst_path='/etc/quagga/miniwan'):
         # TODO: find a way to use best path.
@@ -135,23 +142,24 @@ class OspfRouter(ZebraRouter):
         super(OspfRouter, self).__init__(name, **kwargs)
         self.ospf_cfg_file = ''
 
-    def start(self, controllers):
+    def start_route(self):
         self.generate_zebra_cfg()
         self.generate_ospf_cfg()
-        self.strart_zebra()
+        self.start_zebra()
         self.start_ospfd()
 
     def generate_ospf_cfg(self, dst_path='/etc/quagga/miniwan'):
         host_name_str = 'hostname {}\n'.format(self.name)
-        passwd_str = 'password en\n' + \
-                     'enable password en\n'
+        passwd_str = 'password en\n'
+        # 'enable password en\n'
         router_str = 'router ospf\n' + \
                      '    ospf router-id {}\n'.format(self.router_id) + \
-                     '    redistribute connected\n' + \
-                     '    network {} area 0\n'.format(self.local_ip)
-        for neighbor_ip, _ in self.neighbors:
-            router_str += '    network {} area 0\n'.format(neighbor_ip)
-        log_str = 'log stdout\n'
+                     '    redistribute connected\n'
+        router_str += '    network {} area 0\n'.format(self.local_ip)
+        for _, network_ip in self.wan_interfaces:
+            router_str += '    network {} area 0\n'.format(network_ip)
+        log_str = 'log file /tmp/{}-ospfd.log\n'.format(self.name) + \
+                  'log stdout\n'
         ospf_cfg_str = host_name_str + passwd_str + router_str + log_str
         if not os.path.exists(dst_path):
             if os.path.exists(os.path.abspath(dst_path + '/..')):
@@ -169,10 +177,6 @@ class OspfRouter(ZebraRouter):
             self.ospf_cfg_file, self.name, self.name), shell=True)
         self.waitOutput()
         print("Starting ospfd on %s" % self.name)
-
-    def stop(self):
-        super(OspfRouter, self).stop()
-        self.stop_quagga()
 
 
 class IsisRouter(ZebraRouter):

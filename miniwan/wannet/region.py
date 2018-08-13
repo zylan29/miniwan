@@ -8,18 +8,22 @@ INTERFACE_NAME_FORMATTER = '{}-eth{}'
 # HOST_GW_FORMATTER = '{}.0.254.1'  # ASN
 # HOST_IP_FORMATTER = '{}.0.254.2' + LAN_MASK  # ASN
 
-LO_IP_FORMATTER = '10.10.0.{}/32'  # ASN, ASN
-WAN_IP_FORMATTER = '10.255.{}.{}/30'  # ASN, Interface_ID
-LAN_MASK = '/24'
-HOST_GW_FORMATTER = '10.{}.254.1'  # ASN
-HOST_IP_FORMATTER = '10.{}.254.2' + LAN_MASK  # ASN
+LO_IP_FORMATTER = '10.10.0.{}/32'  # ASN
+IP_BITS = 32
+WAN_IP_MASK = 30
+WAN_IP_FORMATTER = '10.255.{}.{}/' + str(WAN_IP_MASK)  # ASN, Interface_ID
+LAN_IP_MASK = 24
+HOST_GW_FORMATTER = '10.{}.0.1'  # ASN
+HOST_IP_FORMATTER = '10.{}.0.2/' + str(LAN_IP_MASK)  # ASN
 
 
 class Region(object):
     """"
+    Generate IP and other configurations for routers and hosts.
     1 router and 1 host per region.
     """
     ASN = 1
+    WAN_LINKS = 0
 
     def __init__(self, name):
         self.name = name
@@ -28,7 +32,8 @@ class Region(object):
         self.num_wan_ip = 0
         self.router = None
 
-        self.interfaces = [(0, LO_IP_FORMATTER.format(self.asn, self.asn))]
+        self.lan_interfaces = [(0, LO_IP_FORMATTER.format(self.asn, self.asn))]
+        self.wan_interfaces = []
         self.neighbors = []
 
         self.router_name = ROUTER_NAME_FORMATTER.format(self.asn)
@@ -43,38 +48,40 @@ class Region(object):
     def get_host_name_ip_gw(self):
         return (self.host_name, self.host_ip, self.host_gw)
 
-    def get_next_wan_ip(self):
-        self.num_wan_ip += 1
-        return WAN_IP_FORMATTER.format(self.asn, self.num_wan_ip)
+    @staticmethod
+    def get_wan_ip_pair():
+        ip_3th = Region.WAN_LINKS * 2 ** (IP_BITS - WAN_IP_MASK) / 255
+        ip_4th = Region.WAN_LINKS * 2 ** (IP_BITS - WAN_IP_MASK) % 255
+        Region.WAN_LINKS += 1
+        return WAN_IP_FORMATTER.format(ip_3th, ip_4th + 1), WAN_IP_FORMATTER.format(ip_3th, ip_4th + 2)
 
-    def add_interface(self, *iface_id_ip):
-        self.interfaces.append(iface_id_ip)
+    def add_lan_interface(self, *iface_id_ip):
+        self.lan_interfaces.append(iface_id_ip)
+
+    def add_wan_interface(self, *iface_id_ip):
+        self.wan_interfaces.append(iface_id_ip)
 
     def add_neighbor(self, *neighbor_ip_asn):
         self.neighbors.append(neighbor_ip_asn)
 
     def connect_lan(self, router_interface_id):
-        self.add_interface(router_interface_id, self.host_gw + LAN_MASK)
+        self.add_lan_interface(router_interface_id, self.host_gw + '/' + str(LAN_IP_MASK))
 
     def connect_wan(self, neighbor, interface_ids):
         assert isinstance(neighbor, Region)
         assert len(interface_ids) == 2
         local_intf_id, remote_intf_id = interface_ids
-        if self.asn < neighbor.asn:
-            local_ip = self.get_next_wan_ip()
-            remote_ip = self.get_next_wan_ip()
-        else:
-            local_ip = neighbor.get_next_wan_ip()
-            remote_ip = neighbor.get_next_wan_ip()
+        local_ip, remote_ip = self.get_wan_ip_pair()
 
-        self.add_interface(local_intf_id, local_ip)
-        neighbor.add_interface(remote_intf_id, remote_ip)
+        self.add_wan_interface(local_intf_id, local_ip)
+        neighbor.add_wan_interface(remote_intf_id, remote_ip)
         self.add_neighbor(remote_ip, neighbor.asn)
         neighbor.add_neighbor(local_ip, self.asn)
 
     def get_router_info(self):
         router_info = {
-            'interfaces': self.interfaces,
+            'lan_interfaces': self.lan_interfaces,
+            'wan_interfaces': self.wan_interfaces,
             'neighbors': self.neighbors,
             'asn': self.asn,
             'local_ip': self.lo_ip

@@ -10,6 +10,6 @@ class WanNet(Mininet):
         kwargs['topo'] = WanTopo(topo_desc_file)
         kwargs['link'] = TCLink
         # TODO: generalize switch to a L3 router.
-        # TODO: may change BgpRouter to ovs with a cntroller.
+        # TODO: may change BgpRouter to ovs with a controller.
         kwargs['switch'] = OspfRouter
         super(WanNet, self).__init__(**kwargs)

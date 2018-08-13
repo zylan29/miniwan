@@ -5,25 +5,22 @@ defaults:
     default_loss: 0.001
   wan_link:
     default_bw: 10
-    default_delay: 10ms
-    default_loss: 0.1
+    default_delay: 1ms
+    default_loss: 0.01
 regions:
 - name: region1
 - name: region2
 - name: region3
+- name: region4
+- name: region5
 links:
 - src: region1
   dst: region2
-  bw: 10
-  delay: 1ms
-  loss: 0.1
-- src: region1
-  dst: region3
-  bw: 100
-  delay: 0.1ms
-  loss: 0.01
 - src: region2
   dst: region3
-  bw: 100
-  delay: 0.1ms
-  loss: 0.01
+- src: region3
+  dst: region4
+- src: region4
+  dst: region5
+- src: region5
+  dst: region1
