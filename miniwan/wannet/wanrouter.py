@@ -33,7 +33,6 @@ class ZebraRouter(WanRouter):
     def __init__(self, name, **kwargs):
         self.lan_interfaces = kwargs['lan_interfaces']
         self.wan_interfaces = kwargs['wan_interfaces']
-        print(self.wan_interfaces)
         super(ZebraRouter, self).__init__(name, **kwargs)
         self.zebra_cfg_file = ''
 
@@ -79,58 +78,6 @@ class ZebraRouter(WanRouter):
     def stop(self):
         self.stop_quagga()
         self.deleteIntfs()
-
-
-class BgpRouter(ZebraRouter):
-    def __init__(self, name, **kwargs):
-        self.neighbors = kwargs['neighbors']
-        self.local_ip = kwargs['local_ip']
-        self.router_id = self.local_ip.split('/')[0]
-        self.asn = kwargs['asn']
-        super(BgpRouter, self).__init__(name, **kwargs)
-        self.bgpd_cfg_file = ''
-
-    def start_route(self):
-        self.generate_zebra_cfg()
-        self.generate_bgp_cfg()
-        self.start_zebra()
-        self.start_bgpd()
-
-    def generate_bgp_cfg(self, dst_path='/etc/quagga/miniwan'):
-        # TODO: find a way to use best path.
-        host_name_str = 'hostname {}\n'.format(self.name)
-        passwd_str = 'password en\n' + \
-                     'enable password en\n'
-        router_str = 'router bgp {}\n'.format(self.asn) + \
-                     '    bgp router-id {}\n'.format(self.router_id) + \
-                     '    network ' + NETWORK_FORMATTER.format(self.asn) + '\n' + \
-                     '    redistribute connected\n'
-        for neighbor_ip, neighbor_asn in self.neighbors:
-            router_str += '    neighbor {} remote-as {}\n'.format(neighbor_ip, neighbor_asn)
-            # TODO: neighbor setting
-            router_str += '    neighbor {} ebgp-multihop\n'.format(neighbor_ip)
-            router_str += '    neighbor {} next-hop-self\n'.format(neighbor_ip)
-            router_str += '    neighbor {} timers 3 15\n'.format(neighbor_ip)
-        # TODO: where to log
-        log_str = 'log stdout\n'
-
-        bgpd_cfg_str = host_name_str + passwd_str + router_str + log_str
-        if not os.path.exists(dst_path):
-            if os.path.exists(os.path.abspath(dst_path + '/..')):
-                os.system('mkdir -p {}'.format(dst_path))
-            else:
-                raise ValueError('{} does NOT exist and cannot be created.'.format(dst_path))
-        self.bgpd_cfg_file = dst_path + '/bgpd-{}.conf'.format(self.name)
-        with open(self.bgpd_cfg_file, 'w') as f:
-            f.write(bgpd_cfg_str)
-
-    def start_bgpd(self):
-        if self.bgpd_cfg_file == '' or not os.path.exists(self.bgpd_cfg_file):
-            raise Exception('Should generate bgpd configuration file first.')
-        self.cmd('/usr/lib/quagga/bgpd -f {} -d -i /tmp/bgpd-{}.pid > logs/{}-bgpd-stdout 2>&1'.format(
-            self.bgpd_cfg_file, self.name, self.name), shell=True)
-        self.waitOutput()
-        print("Starting bgpd on %s" % self.name)
 
 
 class OspfRouter(ZebraRouter):

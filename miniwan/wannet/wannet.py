@@ -1,6 +1,7 @@
 from mininet.link import TCLink
 from mininet.net import Mininet
 
+from miniwan.wannet.wanhost import WanHost
 from miniwan.wannet.wanrouter import OspfRouter
 from miniwan.wannet.wantopo import WanTopo
 
@@ -12,4 +13,5 @@ class WanNet(Mininet):
         # TODO: generalize switch to a L3 router.
         # TODO: may change BgpRouter to ovs with a controller.
         kwargs['switch'] = OspfRouter
+        kwargs['host'] = WanHost
         super(WanNet, self).__init__(**kwargs)

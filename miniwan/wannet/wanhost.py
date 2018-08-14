@@ -1,7 +1,7 @@
-from mininet.node import Node
+from mininet.node import Host
 
 
-class WanHost(Node):
+class WanHost(Host):
     """
 
     """

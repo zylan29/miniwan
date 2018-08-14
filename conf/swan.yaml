@@ -1,0 +1,43 @@
+defaults:
+  lan_link:
+    default_bw: 100
+    default_delay: 0.1ms
+    default_loss: 0.001
+  wan_link:
+    default_bw: 10
+    default_delay: 1ms
+    default_loss: 0.01
+regions:
+- name: hongkong
+- name: seoul
+- name: seattle
+- name: losangeles
+- name: newyork
+- name: miami
+- name: dublin
+- name: barcelona
+links:
+- src: hongkong
+  dst: seoul
+- src: seoul
+  dst: losangeles
+- src: hongkong
+  dst: seattle
+- src: seattle
+  dst: losangeles
+- src: seattle
+  dst: newyork
+- src: seattle
+  dst: miami
+- src: losangeles
+  dst: newyork
+- src: losangeles
+  dst: miami
+- src: newyork
+  dst: miami
+- src: newyork
+  dst: dublin
+- src: miami
+  dst: barcelona
+- src: dublin
+  dst: barcelona

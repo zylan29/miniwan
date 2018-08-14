@@ -9,17 +9,18 @@ from mininet.log import setLogLevel
 
 LOG_LEVEL = 'info'
 
+SYSCTL_SLEEP = 5
+
 if __name__ == '__main__':
     setLogLevel(LOG_LEVEL)
 
-    net = WanNet(topo_desc_file='../conf/loop.yaml')
+    net = WanNet(topo_desc_file='../conf/swan.yaml')
     net.start()
     for router in net.switches:
         router.enable_route()
-    print('wait 5 seconds...')
-    time.sleep(5)
+    print('wait {} seconds for sysctl changes to take effect...'.format(SYSCTL_SLEEP))
+    time.sleep(SYSCTL_SLEEP)
     for router in net.switches:
         router.start_route()
-    net.pingAll(1)
     CLI(net)
     net.stop()
