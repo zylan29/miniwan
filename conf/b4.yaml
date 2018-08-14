@@ -1,0 +1,61 @@
+defaults:
+  lan_link:
+    default_bw: 100
+    default_delay: 0.1ms
+    default_loss: 0.001
+  wan_link:
+    default_bw: 10
+    default_delay: 1ms
+    default_loss: 0.01
+regions:
+- name: region1
+- name: region2
+- name: region3
+- name: region4
+- name: region5
+- name: region6
+- name: region7
+- name: region8
+- name: region9
+- name: region10
+- name: region11
+- name: region12
+links:
+- src: region1
+  dst: region2
+- src: region2
+  dst: region3
+- src: region1
+  dst: region5
+- src: region3
+  dst: region4
+- src: region3
+  dst: region6
+- src: region4
+  dst: region5
+- src: region4
+  dst: region7
+- src: region4
+  dst: region8
+- src: region5
+  dst: region6
+- src: region6
+  dst: region7
+- src: region6
+  dst: region8
+- src: region7
+  dst: region8
+- src: region7
+  dst: region11
+- src: region8
+  dst: region10
+- src: region9
+  dst: region10
+- src: region9
+  dst: region11
+- src: region10
+  dst: region11
+- src: region10
+  dst: region12
+- src: region11
+  dst: region12

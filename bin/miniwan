@@ -14,7 +14,7 @@ SYSCTL_SLEEP = 5
 if __name__ == '__main__':
     setLogLevel(LOG_LEVEL)
 
-    net = WanNet(topo_desc_file='../conf/swan.yaml')
+    net = WanNet(topo_desc_file='../conf/b4.yaml')
     net.start()
     for router in net.switches:
         router.enable_route()
