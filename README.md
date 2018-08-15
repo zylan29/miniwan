@@ -2,8 +2,6 @@
 
 Emulating WAN by using mininet.
 
-[toc]
-
 ## Introduction
 
 Miniwan generates a WAN topology according to the configuration file `conf/`.
