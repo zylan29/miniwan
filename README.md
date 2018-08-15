@@ -20,14 +20,17 @@ Miniwan supports several routing protocols,
 
 Note: The routing protocols need some time to converge.
 
-## Prerequirements
-
+## Requirements
+Install required packages.
 ```shell
 # apt-get install quagga
 # apt-get install python-yaml
 ```
+[Install mininet](http://mininet.org/download/).  
 
-## Topology
+## Setup
+
+## Customize topology
 
 The WAN regions are defined in `regions` section. 
 Each region consists of a router and a host.

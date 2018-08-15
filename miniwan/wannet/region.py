@@ -3,7 +3,7 @@ HOST_NAME_FORMATTER = 'h{}'
 INTERFACE_NAME_FORMATTER = '{}-eth{}'
 
 IP_BITS = 32
-WAN_IP_MASK = 30
+WAN_IP_MASK = 30  # Up to 255 * 256 / (2 ** (IP_BITS -  WAN_IP_MASK))  wan links.
 WAN_IP_FORMATTER = '10.255.{}.{}/' + str(WAN_IP_MASK)  # ASN, Interface_ID
 LAN_IP_MASK = 24
 HOST_GW_FORMATTER = '10.{}.0.1'  # ASN
@@ -37,12 +37,12 @@ class Region(object):
         return self.router_name
 
     def get_host_name_ip_gw(self):
-        return (self.host_name, self.host_ip, self.host_gw)
+        return self.host_name, self.host_ip, self.host_gw
 
     @staticmethod
     def get_wan_ip_pair():
-        ip_3th = Region.WAN_LINKS * 2 ** (IP_BITS - WAN_IP_MASK) / 255
-        ip_4th = Region.WAN_LINKS * 2 ** (IP_BITS - WAN_IP_MASK) % 255
+        ip_3th = Region.WAN_LINKS * 2 ** (IP_BITS - WAN_IP_MASK) / 256
+        ip_4th = Region.WAN_LINKS * 2 ** (IP_BITS - WAN_IP_MASK) % 256
         Region.WAN_LINKS += 1
         return WAN_IP_FORMATTER.format(ip_3th, ip_4th + 1), WAN_IP_FORMATTER.format(ip_3th, ip_4th + 2)
 

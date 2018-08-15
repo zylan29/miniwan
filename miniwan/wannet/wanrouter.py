@@ -166,7 +166,7 @@ class BgpRouter(ZebraRouter):
     def start_bgpd(self):
         if self.bgp_cfg_file == '' or not os.path.exists(self.bgp_cfg_file):
             raise Exception('Should generate bgpd configuration file first.')
-        self.cmd('/usr/lib/quagga/bgpd -f {} -d -i /tmp/ospfd-{}.pid > logs/{}-ospfd-stdout 2>&1'.format(
+        self.cmd('/usr/lib/quagga/bgpd -f {} -d -i /tmp/bgpd-{}.pid > logs/{}-bgpd-stdout 2>&1'.format(
             self.bgp_cfg_file, self.name, self.name), shell=True)
         self.waitOutput()
         print("Starting bgpd on %s" % self.name)
