@@ -11,7 +11,7 @@ Miniwan supports several routing protocols,
 * OSPF
 * BGP
 
-`/bin/miniwan` do following works,
+`/bin/miniwan` does the following works,
 1. Parse arguments.
 2. Read topology from the configuration file.
 3. Add routers and hosts according to the topology.
