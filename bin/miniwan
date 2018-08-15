@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import argparse
 import sys
 sys.path.append('..')
 import time
@@ -12,6 +13,12 @@ LOG_LEVEL = 'info'
 SYSCTL_SLEEP = 5
 
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-t", "--topology", help="topology file name", default='../conf/b4.yaml')
+    parser.add_argument("-r", "--router", help="router protocol", default='ospf')
+
+    args = parser.parse_args()
+
     setLogLevel(LOG_LEVEL)
 
     net = WanNet(topo_desc_file='../conf/b4.yaml')
