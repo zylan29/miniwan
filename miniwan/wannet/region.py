@@ -2,7 +2,6 @@ ROUTER_NAME_FORMATTER = 'r{}'
 HOST_NAME_FORMATTER = 'h{}'
 INTERFACE_NAME_FORMATTER = '{}-eth{}'
 
-LO_IP_FORMATTER = '10.10.0.{}/32'  # ASN
 IP_BITS = 32
 WAN_IP_MASK = 30
 WAN_IP_FORMATTER = '10.255.{}.{}/' + str(WAN_IP_MASK)  # ASN, Interface_ID
@@ -25,7 +24,7 @@ class Region(object):
         Region.ASN += 1
         self.num_wan_ip = 0
 
-        self.lan_interfaces = [(0, LO_IP_FORMATTER.format(self.asn, self.asn))]
+        self.lan_interfaces = []
         self.wan_interfaces = []
         self.neighbors = []
 
@@ -33,7 +32,6 @@ class Region(object):
         self.host_name = HOST_NAME_FORMATTER.format(self.asn)
         self.host_gw = HOST_GW_FORMATTER.format(self.asn)
         self.host_ip = HOST_IP_FORMATTER.format(self.asn)
-        self.lo_ip = LO_IP_FORMATTER.format(self.asn, self.asn)
 
     def get_router_name(self):
         return self.router_name
