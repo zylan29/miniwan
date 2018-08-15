@@ -34,7 +34,6 @@ class Region(object):
         self.host_gw = HOST_GW_FORMATTER.format(self.asn)
         self.host_ip = HOST_IP_FORMATTER.format(self.asn)
         self.lo_ip = LO_IP_FORMATTER.format(self.asn, self.asn)
-        print('{}-->{}'.format(self.name, self.router_name))
 
     def get_router_name(self):
         return self.router_name
