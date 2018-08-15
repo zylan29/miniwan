@@ -78,6 +78,6 @@ class Region(object):
             'wan_interfaces': self.wan_interfaces,
             'neighbors': self.neighbors,
             'asn': self.asn,
-            'local_ip': self.lo_ip
+            'local_ip': self.host_gw + '/' + str(LAN_IP_MASK)
         }
         return router_info
