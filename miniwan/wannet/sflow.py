@@ -1,3 +1,5 @@
+# This file is copied from sflow-rt/extras
+
 import array
 import fcntl
 import re

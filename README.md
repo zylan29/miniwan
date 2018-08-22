@@ -65,3 +65,9 @@ links:
   dst: region2
 ```
 Note: Quagga configuration files should be in a directory that user `quagga` can access.
+
+## Related projects
+
+1. [mininet_ospf_bgp: A simple Mininet network running Quagga (OSPF and BGP)](https://github.com/edwinsc/mininet_ospf_bgp)
+1. [BGP Path Hijacking Attack Demo](https://bitbucket.org/jvimal/bgp)
+1. [sFlow-RT](https://sflow-rt.com/)
