@@ -1,5 +1,6 @@
 import os
 
+from mininet.node import OVSSwitch
 from mininet.node import Switch
 
 NETWORK_FORMATTER = '{}.0.0.0/8'  # ASN
@@ -9,7 +10,6 @@ class WanRouter(Switch):
     def __init__(self, name, **kwargs):
         kwargs['inNamespace'] = True
         super(WanRouter, self).__init__(name, **kwargs)
-        # Enable forwarding on the router
 
     def enable_route(self):
         self.cmd('sysctl -w net.ipv4.ip_forward=1')
@@ -80,13 +80,13 @@ class ZebraRouter(WanRouter):
         self.deleteIntfs()
 
 
-class OspfRouter(ZebraRouter):
+class OSPFRouter(ZebraRouter):
     def __init__(self, name, **kwargs):
         self.neighbors = kwargs['neighbors']
         self.local_ip = kwargs['local_ip']
         self.router_id = self.local_ip.split('/')[0]
         self.asn = kwargs['asn']
-        super(OspfRouter, self).__init__(name, **kwargs)
+        super(OSPFRouter, self).__init__(name, **kwargs)
         self.ospf_cfg_file = ''
 
     def start_route(self):
@@ -125,13 +125,13 @@ class OspfRouter(ZebraRouter):
         print("Starting ospfd on %s" % self.name)
 
 
-class BgpRouter(ZebraRouter):
+class BGPRouter(ZebraRouter):
     def __init__(self, name, **kwargs):
         self.neighbors = kwargs['neighbors']
         self.local_ip = kwargs['local_ip']
         self.router_id = self.local_ip.split('/')[0]
         self.asn = kwargs['asn']
-        super(BgpRouter, self).__init__(name, **kwargs)
+        super(BGPRouter, self).__init__(name, **kwargs)
         self.bgp_cfg_file = ''
 
     def start_route(self):
@@ -170,3 +170,16 @@ class BgpRouter(ZebraRouter):
             self.bgp_cfg_file, self.name, self.name), shell=True)
         self.waitOutput()
         print("Starting bgpd on %s" % self.name)
+
+
+class OpenflowRouter(OVSSwitch):
+    def __init__(self, name, **kwargs):
+        super(OpenflowRouter, self).__init__(name, **kwargs)
+
+    def enable_route(self):
+        # TODO: Implement this
+        pass
+
+    def start_route(self):
+        # TODO: Implement this
+        pass

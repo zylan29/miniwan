@@ -14,7 +14,7 @@ Miniwan supports several routing protocols,
 `/bin/miniwan` does the following works,
 1. Parse arguments.
 2. Read topology from the configuration file.
-3. Add routers and hosts according to the topology.
+3. Add routers and hosts according to the topology, and automatically assign IP addresses to network interfaces.
 4. Start routing.
 5. Start CLI.
 
@@ -26,7 +26,13 @@ Install required packages.
 # apt-get install quagga
 # apt-get install python-yaml
 ```
-[Install mininet](http://mininet.org/download/).  
+[Install mininet](http://mininet.org/download/)
+
+[Install TrafficGenerator](https://github.com/HKUST-SING/TrafficGenerator)
+
+[Install sflow]
+
+[Install sflow-rt](https://sflow-rt.com/download.php)
 
 ## Setup
 
