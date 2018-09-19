@@ -1,7 +1,8 @@
+
 import os
 
-from mininet.node import OVSSwitch
 from mininet.node import Switch
+
 
 NETWORK_FORMATTER = '{}.0.0.0/8'  # ASN
 
@@ -10,6 +11,7 @@ class WanRouter(Switch):
     def __init__(self, name, **kwargs):
         kwargs['inNamespace'] = True
         super(WanRouter, self).__init__(name, **kwargs)
+        self.enable_route()
 
     def enable_route(self):
         self.cmd('sysctl -w net.ipv4.ip_forward=1')
@@ -29,11 +31,11 @@ class WanRouter(Switch):
         self.deleteIntfs()
 
 
-class ZebraRouter(WanRouter):
+class QuaggaRouter(WanRouter):
     def __init__(self, name, **kwargs):
         self.lan_interfaces = kwargs['lan_interfaces']
         self.wan_interfaces = kwargs['wan_interfaces']
-        super(ZebraRouter, self).__init__(name, **kwargs)
+        super(QuaggaRouter, self).__init__(name, **kwargs)
         self.zebra_cfg_file = ''
 
     def generate_zebra_cfg(self, dst_path='/etc/quagga/miniwan'):
@@ -80,7 +82,7 @@ class ZebraRouter(WanRouter):
         self.deleteIntfs()
 
 
-class OSPFRouter(ZebraRouter):
+class OSPFRouter(QuaggaRouter):
     def __init__(self, name, **kwargs):
         self.neighbors = kwargs['neighbors']
         self.local_ip = kwargs['local_ip']
@@ -125,7 +127,7 @@ class OSPFRouter(ZebraRouter):
         print("Starting ospfd on %s" % self.name)
 
 
-class BGPRouter(ZebraRouter):
+class BGPRouter(QuaggaRouter):
     def __init__(self, name, **kwargs):
         self.neighbors = kwargs['neighbors']
         self.local_ip = kwargs['local_ip']
@@ -171,15 +173,3 @@ class BGPRouter(ZebraRouter):
         self.waitOutput()
         print("Starting bgpd on %s" % self.name)
 
-
-class OpenflowRouter(OVSSwitch):
-    def __init__(self, name, **kwargs):
-        super(OpenflowRouter, self).__init__(name, **kwargs)
-
-    def enable_route(self):
-        # TODO: Implement this
-        pass
-
-    def start_route(self):
-        # TODO: Implement this
-        pass

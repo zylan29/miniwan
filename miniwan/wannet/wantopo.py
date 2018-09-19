@@ -5,8 +5,10 @@ from miniwan.wannet.region import Region
 
 
 class WanTopo(Topo):
+    # TODO: use 'build' to build topology, instead of __init__.
     def __init__(self, topo_file='../conf/simple.yaml'):
         Topo.__init__(self)
+        self.host2router = {}
         with open(topo_file, 'r') as f:
             topo_desc = yaml.load(f)
         if topo_desc is None:
@@ -33,6 +35,7 @@ class WanTopo(Topo):
             self.addLink(host_name, router_name, bw=bw, delay=delay, loss=loss)
             _, router_port_id = self.port(host_name, router_name)
             region.connect_lan(router_port_id)
+            self.host2router[host_name] = router_name
         for link in topo_desc['links']:
             bw = link['bw'] if 'bw' in link else wan_link_defaults['default_bw']
             delay = str(link['delay']) if 'delay' in link else wan_link_defaults['default_delay']
@@ -49,3 +52,6 @@ class WanTopo(Topo):
             router_info = regions[region_name].get_router_info()
             router_info.update(self.nodeInfo(router_name))
             self.setNodeInfo(router_name, router_info)
+
+    def get_router_name(self, host_name):
+        return self.host2router[host_name]

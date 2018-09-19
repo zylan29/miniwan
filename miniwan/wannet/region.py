@@ -32,6 +32,7 @@ class Region(object):
         self.host_name = HOST_NAME_FORMATTER.format(self.asn)
         self.host_gw = HOST_GW_FORMATTER.format(self.asn)
         self.host_ip = HOST_IP_FORMATTER.format(self.asn)
+        self.local_intf_id = -1
 
     def get_router_name(self):
         return self.router_name
@@ -56,6 +57,7 @@ class Region(object):
         self.neighbors.append(neighbor_ip_asn)
 
     def connect_lan(self, router_interface_id):
+        self.local_intf_id = router_interface_id
         self.add_lan_interface(router_interface_id, self.host_gw + '/' + str(LAN_IP_MASK))
 
     def connect_wan(self, neighbor, interface_ids):
@@ -70,11 +72,12 @@ class Region(object):
         neighbor.add_neighbor(local_ip, self.asn)
 
     def get_router_info(self):
-        router_info = {
+        # TODO: ugly!
+        return {
             'lan_interfaces': self.lan_interfaces,
             'wan_interfaces': self.wan_interfaces,
             'neighbors': self.neighbors,
             'asn': self.asn,
-            'local_ip': self.host_gw + '/' + str(LAN_IP_MASK)
+            'local_ip': self.host_gw + '/' + str(LAN_IP_MASK),
+            'local_intf_id': self.local_intf_id
         }
-        return router_info

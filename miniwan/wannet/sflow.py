@@ -1,4 +1,4 @@
-# This file is copied from sflow-rt/extras
+# This file is copied from sflow-rt/extras/
 
 import array
 import fcntl

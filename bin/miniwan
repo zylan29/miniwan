@@ -12,7 +12,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-c', '--controller', help='Openflow controller', default='onos')
     parser.add_argument('-t', '--topology', help='topology file', default='../conf/b4.yaml')
-    parser.add_argument('-p', '--protocol', help='routing protocol', choices=['bgp', 'ospf', 'openflow'],
+    parser.add_argument('-p', '--protocol', help='routing protocol', choices=['bgp', 'ospf', 'sr'],
                         default='ospf')
     parser.add_argument('-l', '--log', help='log level', choices=['info', 'debug'], default='info')
 
@@ -20,7 +20,7 @@ if __name__ == '__main__':
 
     setLogLevel(args.log)
 
-    net = WanNet(topo_desc_file=args.topology, protocol=args.protocol, controller=args.controller)
+    net = WanNet(topo_desc_file=args.topology, protocol=args.protocol)
 
     net.start()
 
