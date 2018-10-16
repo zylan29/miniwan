@@ -28,12 +28,6 @@ Install required packages.
 ```
 [Install mininet](http://mininet.org/download/)
 
-[Install TrafficGenerator](https://github.com/HKUST-SING/TrafficGenerator)
-
-[Install sflow]
-
-[Install sflow-rt](https://sflow-rt.com/download.php)
-
 ## Setup
 
 ## Customize topology
@@ -65,6 +59,23 @@ links:
   dst: region2
 ```
 Note: Quagga configuration files should be in a directory that user `quagga` can access.
+
+## Run
+
+```bash
+# cd bin
+# python miniwan -h
+usage: miniwan [-h] [-t TOPOLOGY] [-p {bgp,ospf}] [-l {info,debug}]
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -t TOPOLOGY, --topology TOPOLOGY
+                        topology file
+  -p {bgp,ospf}, --protocol {bgp,ospf}
+                        routing protocol
+  -l {info,debug}, --log {info,debug}
+                        log level
+```
 
 ## Related projects
 

@@ -10,9 +10,8 @@ from mininet.log import setLogLevel
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('-c', '--controller', help='Openflow controller', default='onos')
     parser.add_argument('-t', '--topology', help='topology file', default='../conf/b4.yaml')
-    parser.add_argument('-p', '--protocol', help='routing protocol', choices=['bgp', 'ospf', 'sr'],
+    parser.add_argument('-p', '--protocol', help='routing protocol', choices=['bgp', 'ospf'],
                         default='ospf')
     parser.add_argument('-l', '--log', help='log level', choices=['info', 'debug'], default='info')
 
