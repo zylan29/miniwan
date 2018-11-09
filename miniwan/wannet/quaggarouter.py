@@ -54,9 +54,11 @@ class ZebraRouter(WanRouter):
                 lo_str += '    ip address {}\n'.format(intf_ip)
             else:
                 intf_name = self.intfs[intf_id]
-                intf_str += 'interface {}\n'.format(intf_name) + \
-                            '    ip address {}\n'.format(intf_ip) + \
-                            '    ipv6 address {}\n'.format(intf_ipv6)
+                intf_str += 'interface {}\n'.format(intf_name)
+                if intf_ip != '':
+                    intf_str += '    ip address {}\n'.format(intf_ip)
+                if intf_ipv6 != '':
+                    intf_str += '    ipv6 address {}\n'.format(intf_ipv6)
         log_str = 'log file /tmp/{}-zebra.log\n'.format(self.name) + \
                   'log stdout\n'
         zebra_cfg_str = host_str + passwd_str + lo_str + intf_str + log_str
@@ -137,9 +139,17 @@ class OspfRouter(ZebraRouter):
 class BgpRouter(ZebraRouter):
     def __init__(self, name, **kwargs):
         self.neighbors = kwargs['neighbors']
-        self.local_ip = kwargs['local_ip']
-        self.local_ipv6 = kwargs['local_ipv6']
-        self.router_id = self.local_ip.split('/')[0]
+        if 'local_ip' in kwargs and kwargs['local_ip'] != '':
+            self.local_ip = kwargs['local_ip']
+            self.enable_ipv4 = True
+        else:
+            self.enable_ipv4 = False
+        if 'local_ipv6'in kwargs and kwargs['local_ipv6'] != '':
+            self.local_ipv6 = kwargs['local_ipv6']
+            self.enable_ipv6 = True
+        else:
+            self.enable_ipv6 = False
+        self.router_id = kwargs['router_id']
         self.asn = kwargs['asn']
         super(BgpRouter, self).__init__(name, **kwargs)
         self.bgp_cfg_file = ''
@@ -157,19 +167,28 @@ class BgpRouter(ZebraRouter):
         router_str = 'router bgp {}\n'.format(self.asn) + \
                      '    bgp router-id {}\n'.format(self.router_id) + \
                      '    redistribute connected\n'
-        router_str += '    network {}\n'.format(self.local_ip)
+        if self.enable_ipv4:
+            ip_router_str = '    network {}\n'.format(self.local_ip)
+        else:
+            ip_router_str = ''
+        if self.enable_ipv6:
+            ipv6_router_str = 'address-family ipv6\n'
+            ipv6_router_str += '    network {}\n'.format(self.local_ipv6)
+        else:
+            ipv6_router_str = ''
         ipv6_neighbors = ''
-        ipv6_router_str = 'address-family ipv6\n'
-        ipv6_router_str += '    network {}\n'.format(self.local_ipv6)
         for neighbor_asn, neighbor_ip, neighbor_ipv6 in self.neighbors:
-            router_str += '    neighbor {} remote-as {}\n'.format(neighbor_ip.split('/')[0], neighbor_asn)
-            router_str += '    neighbor {} timers 5 5\n'.format(neighbor_ip.split('/')[0])
-            ipv6_neighbors += '    neighbor {} remote-as {}\n'.format(neighbor_ipv6.split('/')[0], neighbor_asn)
-            ipv6_router_str += '    neighbor {} activate\n'.format(neighbor_ipv6.split('/')[0])
-        ipv6_router_str += 'exit-address-family\n'
+            if self.enable_ipv4:
+                ip_router_str += '    neighbor {} remote-as {}\n'.format(neighbor_ip.split('/')[0], neighbor_asn)
+                ip_router_str += '    neighbor {} timers 5 5\n'.format(neighbor_ip.split('/')[0])
+            if self.enable_ipv6:
+                ipv6_neighbors += '    neighbor {} remote-as {}\n'.format(neighbor_ipv6.split('/')[0], neighbor_asn)
+                ipv6_router_str += '    neighbor {} activate\n'.format(neighbor_ipv6.split('/')[0])
+        if self.enable_ipv6:
+            ipv6_router_str += 'exit-address-family\n'
         log_str = 'log file /tmp/{}-bgpd.log\n'.format(self.name) + \
                   'log stdout\n'
-        bgp_cfg_str = host_name_str + passwd_str + router_str + ipv6_neighbors + ipv6_router_str + log_str
+        bgp_cfg_str = host_name_str + passwd_str + router_str + ip_router_str + ipv6_neighbors + ipv6_router_str + log_str
         if not os.path.exists(dst_path):
             if os.path.exists(os.path.abspath(dst_path + '/..')):
                 os.system('mkdir -p {}'.format(dst_path))

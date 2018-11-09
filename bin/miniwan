@@ -10,6 +10,8 @@ from mininet.log import setLogLevel
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
+    parser.add_argument('-4', '--ipv4', help='pure IPv4 WAN', action='store_true')
+    parser.add_argument('-6', '--ipv6', help='pure IPv6 WAN', action='store_true')
     parser.add_argument('-t', '--topology', help='topology file', default='../conf/simple.yaml')
     parser.add_argument('-p', '--protocol', help='routing protocol', choices=['bgp', 'ospf'], default='bgp')
     parser.add_argument('-l', '--log', help='log level', choices=['info', 'debug'], default='info')
@@ -18,7 +20,14 @@ if __name__ == '__main__':
 
     setLogLevel(args.log)
 
-    net = WanNet(topo_desc_file=args.topology, protocol=args.protocol)
+    if args.ipv4 and not args.ipv6:
+        ip_ver = 'ipv4'
+    elif args.ipv6 and not args.ipv4:
+        ip_ver = 'ipv6'
+    else:
+        ip_ver = 'all'
+
+    net = WanNet(topo_desc_file=args.topology, protocol=args.protocol, ip_ver=ip_ver)
 
     net.start()
 

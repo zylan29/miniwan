@@ -24,8 +24,9 @@ class Region(object):
     """
     ASN = 1
 
-    def __init__(self, name):
+    def __init__(self, name, ip_ver='all'):
         self.name = name
+        self.ip_ver = ip_ver
         self.asn = Region.ASN
         Region.ASN += 1
         self.num_wan_ip = 0
@@ -35,10 +36,11 @@ class Region(object):
         self.neighbors = []
 
         self.router_name = ROUTER_NAME_FORMATTER.format(self.asn)
+        self.router_id = LAN_IP_FORMATTER.format(self.asn).split('/')[0]
 
         self.lan_intf_id = -1
-        self.lan_intf_ip = LAN_IP_FORMATTER.format(self.asn)
-        self.lan_intf_ipv6 = LAN_IPV6_FORMATTER.format(self.asn)
+        self.lan_intf_ip = LAN_IP_FORMATTER.format(self.asn) if self.ip_ver in ['ipv4', 'all'] else ''
+        self.lan_intf_ipv6 = LAN_IPV6_FORMATTER.format(self.asn) if self.ip_ver in ['ipv6', 'all'] else ''
 
         self.host_name = HOST_NAME_FORMATTER.format(self.asn)
         self.host_gw = HOST_GW_FORMATTER.format(self.asn)
@@ -76,11 +78,14 @@ class Region(object):
         x, y = self.asn, neighbor.asn
         if x > y:
             x, y = y, x
-        local_ip = LINK_IP_FORMATTER.format(x, y, self.asn)
-        remote_ip = LINK_IP_FORMATTER.format(x, y, neighbor.asn)
 
-        local_ipv6 = LINK_IPV6_FORMATTER.format(x, y, self.asn)
-        remote_ipv6 = LINK_IPV6_FORMATTER.format(x, y, neighbor.asn)
+        local_ip, remote_ip, local_ipv6, remote_ipv6 = '', '', '', ''
+        if self.ip_ver in ['ipv4', 'all']:
+            local_ip = LINK_IP_FORMATTER.format(x, y, self.asn)
+            remote_ip = LINK_IP_FORMATTER.format(x, y, neighbor.asn)
+        if self.ip_ver in ['ipv6', 'all']:
+            local_ipv6 = LINK_IPV6_FORMATTER.format(x, y, self.asn)
+            remote_ipv6 = LINK_IPV6_FORMATTER.format(x, y, neighbor.asn)
 
         self.add_wan_interface(local_intf_id, local_ip, local_ipv6)
         neighbor.add_wan_interface(remote_intf_id, remote_ip, remote_ipv6)
@@ -89,6 +94,7 @@ class Region(object):
 
     def get_router_info(self):
         return {
+            'router_id': self.router_id,
             'lan_interfaces': self.lan_interfaces,
             'wan_interfaces': self.wan_interfaces,
             'neighbors': self.neighbors,
@@ -99,9 +105,11 @@ class Region(object):
         }
 
     def get_host_info(self):
-        return {
-            'host_ip': self.host_ip,
-            'host_gw': self.host_gw,
-            'host_ipv6': self.host_ipv6,
-            'host_gw_ipv6': self.host_gw_ipv6
-        }
+        host_info = {}
+        if self.ip_ver in ['ipv4', 'all']:
+            host_info['ip'] = self.host_ip
+            host_info['defaultRoute'] = 'via {}'.format(self.host_gw)
+        if self.ip_ver in ['ipv6', 'all']:
+            host_info['ipv6'] = self.host_ipv6
+            host_info['defaultIPv6Route'] = 'via {}'.format(self.host_gw_ipv6)
+        return host_info

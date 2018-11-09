@@ -7,7 +7,7 @@ from miniwan.wannet.wanhost import WanHost
 from miniwan.wannet.quaggarouter import BgpRouter
 from miniwan.wannet.quaggarouter import OspfRouter
 from miniwan.wannet.wantopo import WanTopo
-
+from miniwan.ipv6patch import applyIPv6Patch
 
 SYSCTL_SLEEP = 5
 
@@ -17,9 +17,13 @@ CONTROLLER_PORT = 6633
 
 
 class WanNet(Mininet):
-    def __init__(self, topo_desc_file='../conf/simple.yaml', protocol='ospf', **kwargs):
-        kwargs['topo'] = WanTopo(topo_desc_file)
+    def __init__(self, topo_desc_file='../conf/simple.yaml', protocol='ospf', ip_ver='all', **kwargs):
+        if ip_ver in ['ipv6', 'all']:
+            applyIPv6Patch()
+        self.ip_ver = ip_ver
+        kwargs['topo'] = WanTopo(topo_desc_file, ip_ver)
         kwargs['link'] = TCLink
+        kwargs['host'] = WanHost
         self.protocol = protocol.lower()
         if self.protocol == 'ospf':
             kwargs['switch'] = OspfRouter
@@ -27,13 +31,10 @@ class WanNet(Mininet):
             kwargs['switch'] = BgpRouter
         else:
             raise ValueError('Unsupported routing protocol: {}.'.format(protocol))
-        kwargs['host'] = WanHost
         super(WanNet, self).__init__(**kwargs)
 
     def start(self):
         super(WanNet, self).start()
-        for host in self.hosts:
-            host.config_ipv6()
 
         if self.protocol in ['ospf', 'bgp']:
             for router in self.switches:
