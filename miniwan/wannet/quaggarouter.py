@@ -4,7 +4,9 @@ import os
 from mininet.node import Switch
 
 
-NETWORK_FORMATTER = '{}.0.0.0/8'  # ASN
+QUAGGA_BIN_LOCATION = '/usr/lib/quagga/'
+QUAGGA_CONF_LOCATION = '/etc/quagga/miniwan/'
+LOG_LOCATION = '/tmp/'
 
 
 class WanRouter(Switch):
@@ -15,6 +17,8 @@ class WanRouter(Switch):
 
     def enable_route(self):
         self.cmd('sysctl -w net.ipv4.ip_forward=1')
+        self.waitOutput()
+        self.cmd('sysctl -w net.ipv6.conf.all.forwarding=1')
         self.waitOutput()
 
     def start_route(self):
@@ -31,11 +35,11 @@ class WanRouter(Switch):
         self.deleteIntfs()
 
 
-class QuaggaRouter(WanRouter):
+class ZebraRouter(WanRouter):
     def __init__(self, name, **kwargs):
         self.lan_interfaces = kwargs['lan_interfaces']
         self.wan_interfaces = kwargs['wan_interfaces']
-        super(QuaggaRouter, self).__init__(name, **kwargs)
+        super(ZebraRouter, self).__init__(name, **kwargs)
         self.zebra_cfg_file = ''
 
     def generate_zebra_cfg(self, dst_path='/etc/quagga/miniwan'):
@@ -45,13 +49,14 @@ class QuaggaRouter(WanRouter):
         lo_str = 'interface lo\n' + \
                  '    ip address 127.0.0.1/8\n'
         intf_str = ''
-        for intf_id, intf_ip in self.lan_interfaces + self.wan_interfaces:
+        for intf_id, intf_ip, intf_ipv6 in self.lan_interfaces + self.wan_interfaces:
             if intf_id == 0:
                 lo_str += '    ip address {}\n'.format(intf_ip)
             else:
                 intf_name = self.intfs[intf_id]
                 intf_str += 'interface {}\n'.format(intf_name) + \
-                            '    ip address {}\n'.format(intf_ip)
+                            '    ip address {}\n'.format(intf_ip) + \
+                            '    ipv6 address {}\n'.format(intf_ipv6)
         log_str = 'log file /tmp/{}-zebra.log\n'.format(self.name) + \
                   'log stdout\n'
         zebra_cfg_str = host_str + passwd_str + lo_str + intf_str + log_str
@@ -68,8 +73,8 @@ class QuaggaRouter(WanRouter):
     def start_zebra(self):
         if self.zebra_cfg_file == '' or not os.path.exists(self.zebra_cfg_file):
             raise Exception('Should generate zebra configuration file first.')
-        self.cmd('/usr/lib/quagga/zebra -f {} -d -i /tmp/zebra-{}.pid > logs/{}-zebra-stdout 2>&1'.format(
-            self.zebra_cfg_file, self.name, self.name))
+        self.cmd('{}zebra -f {} -d -i /tmp/zebra-{}.pid > /tmp/{}-zebra-stdout 2>&1'.format(
+            QUAGGA_BIN_LOCATION, self.zebra_cfg_file, self.name, self.name))
         self.waitOutput()
         print("Starting zebra on %s" % self.name)
 
@@ -82,13 +87,15 @@ class QuaggaRouter(WanRouter):
         self.deleteIntfs()
 
 
-class OSPFRouter(QuaggaRouter):
+# TODO: use ospf6d to support ipv6
+class OspfRouter(ZebraRouter):
     def __init__(self, name, **kwargs):
         self.neighbors = kwargs['neighbors']
         self.local_ip = kwargs['local_ip']
+        self.local_ipv6 = kwargs['local_ipv6']
         self.router_id = self.local_ip.split('/')[0]
         self.asn = kwargs['asn']
-        super(OSPFRouter, self).__init__(name, **kwargs)
+        super(OspfRouter, self).__init__(name, **kwargs)
         self.ospf_cfg_file = ''
 
     def start_route(self):
@@ -104,7 +111,7 @@ class OSPFRouter(QuaggaRouter):
                      '    ospf router-id {}\n'.format(self.router_id) + \
                      '    redistribute connected\n'
         router_str += '    network {} area 0\n'.format(self.local_ip)
-        for _, network_ip in self.wan_interfaces:
+        for _, network_ip, network_ipv6 in self.wan_interfaces:
             router_str += '    network {} area 0\n'.format(network_ip)
         log_str = 'log file /tmp/{}-ospfd.log\n'.format(self.name) + \
                   'log stdout\n'
@@ -121,19 +128,20 @@ class OSPFRouter(QuaggaRouter):
     def start_ospfd(self):
         if self.ospf_cfg_file == '' or not os.path.exists(self.ospf_cfg_file):
             raise Exception('Should generate ospfd configuration file first.')
-        self.cmd('/usr/lib/quagga/ospfd -f {} -d -i /tmp/ospfd-{}.pid > logs/{}-ospfd-stdout 2>&1'.format(
-            self.ospf_cfg_file, self.name, self.name), shell=True)
+        self.cmd('{}ospfd -f {} -d -i /tmp/ospfd-{}.pid > /tmp/{}-ospfd-stdout 2>&1'.format(
+            QUAGGA_BIN_LOCATION, self.ospf_cfg_file, self.name, self.name), shell=True)
         self.waitOutput()
         print("Starting ospfd on %s" % self.name)
 
 
-class BGPRouter(QuaggaRouter):
+class BgpRouter(ZebraRouter):
     def __init__(self, name, **kwargs):
         self.neighbors = kwargs['neighbors']
         self.local_ip = kwargs['local_ip']
+        self.local_ipv6 = kwargs['local_ipv6']
         self.router_id = self.local_ip.split('/')[0]
         self.asn = kwargs['asn']
-        super(BGPRouter, self).__init__(name, **kwargs)
+        super(BgpRouter, self).__init__(name, **kwargs)
         self.bgp_cfg_file = ''
 
     def start_route(self):
@@ -150,12 +158,18 @@ class BGPRouter(QuaggaRouter):
                      '    bgp router-id {}\n'.format(self.router_id) + \
                      '    redistribute connected\n'
         router_str += '    network {}\n'.format(self.local_ip)
-        for neighbor_ip, neighbor_asn in self.neighbors:
+        ipv6_neighbors = ''
+        ipv6_router_str = 'address-family ipv6\n'
+        ipv6_router_str += '    network {}\n'.format(self.local_ipv6)
+        for neighbor_asn, neighbor_ip, neighbor_ipv6 in self.neighbors:
             router_str += '    neighbor {} remote-as {}\n'.format(neighbor_ip.split('/')[0], neighbor_asn)
             router_str += '    neighbor {} timers 5 5\n'.format(neighbor_ip.split('/')[0])
+            ipv6_neighbors += '    neighbor {} remote-as {}\n'.format(neighbor_ipv6.split('/')[0], neighbor_asn)
+            ipv6_router_str += '    neighbor {} activate\n'.format(neighbor_ipv6.split('/')[0])
+        ipv6_router_str += 'exit-address-family\n'
         log_str = 'log file /tmp/{}-bgpd.log\n'.format(self.name) + \
                   'log stdout\n'
-        bgp_cfg_str = host_name_str + passwd_str + router_str + log_str
+        bgp_cfg_str = host_name_str + passwd_str + router_str + ipv6_neighbors + ipv6_router_str + log_str
         if not os.path.exists(dst_path):
             if os.path.exists(os.path.abspath(dst_path + '/..')):
                 os.system('mkdir -p {}'.format(dst_path))
@@ -168,8 +182,8 @@ class BGPRouter(QuaggaRouter):
     def start_bgpd(self):
         if self.bgp_cfg_file == '' or not os.path.exists(self.bgp_cfg_file):
             raise Exception('Should generate bgpd configuration file first.')
-        self.cmd('/usr/lib/quagga/bgpd -f {} -d -i /tmp/bgpd-{}.pid > logs/{}-bgpd-stdout 2>&1'.format(
-            self.bgp_cfg_file, self.name, self.name), shell=True)
+        self.cmd('{}bgpd -f {} -d -i /tmp/bgpd-{}.pid > /tmp/{}-bgpd-stdout 2>&1'.format(
+            QUAGGA_BIN_LOCATION, self.bgp_cfg_file, self.name, self.name), shell=True)
         self.waitOutput()
         print("Starting bgpd on %s" % self.name)
 

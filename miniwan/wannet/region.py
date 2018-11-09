@@ -2,12 +2,19 @@ ROUTER_NAME_FORMATTER = 'r{}'
 HOST_NAME_FORMATTER = 'h{}'
 INTERFACE_NAME_FORMATTER = '{}-eth{}'
 
-IP_BITS = 32
-WAN_IP_MASK = 30  # Up to 255 * 256 / (2 ** (IP_BITS -  WAN_IP_MASK))  wan links.
-WAN_IP_FORMATTER = '10.255.{}.{}/' + str(WAN_IP_MASK)  # ASN, Interface_ID
+# IPv4 address formatter
 LAN_IP_MASK = 24
-HOST_GW_FORMATTER = '10.{}.0.1'  # ASN
-HOST_IP_FORMATTER = '10.{}.0.2/' + str(LAN_IP_MASK)  # ASN
+HOST_GW_FORMATTER = '10.{}.1.1'  # ASN
+HOST_IP_FORMATTER = '10.{}.1.2/' + str(LAN_IP_MASK)  # ASN
+LAN_IP_FORMATTER = HOST_GW_FORMATTER + '/' + str(LAN_IP_MASK)
+LINK_IP_FORMATTER = '99.{}.{}.{}' + '/' + str(LAN_IP_MASK)  # 99.x.y.x, x < y
+
+# IPv6 address formatter
+LAN_IPV6_MASK = 112
+HOST_GW_IPV6_FORMATTER = '2001::10:{}:1:1'
+HOST_IPV6_FORMATTER = '2001::10:{}:1:2' + '/' + str(LAN_IPV6_MASK)
+LAN_IPV6_FORMATTER = HOST_GW_IPV6_FORMATTER + '/' + str(LAN_IPV6_MASK)
+LINK_IPV6_FORMATTER = '2001::99:{}:{}:{}' + '/' + str(LAN_IPV6_MASK)  # 2001::99:x:y:x, x < y
 
 
 class Region(object):
@@ -16,7 +23,6 @@ class Region(object):
     1 router and 1 host per region.
     """
     ASN = 1
-    WAN_LINKS = 0
 
     def __init__(self, name):
         self.name = name
@@ -29,55 +35,73 @@ class Region(object):
         self.neighbors = []
 
         self.router_name = ROUTER_NAME_FORMATTER.format(self.asn)
+
+        self.lan_intf_id = -1
+        self.lan_intf_ip = LAN_IP_FORMATTER.format(self.asn)
+        self.lan_intf_ipv6 = LAN_IPV6_FORMATTER.format(self.asn)
+
         self.host_name = HOST_NAME_FORMATTER.format(self.asn)
         self.host_gw = HOST_GW_FORMATTER.format(self.asn)
         self.host_ip = HOST_IP_FORMATTER.format(self.asn)
-        self.local_intf_id = -1
+        self.host_gw_ipv6 = HOST_GW_IPV6_FORMATTER.format(self.asn)
+        self.host_ipv6 = HOST_IPV6_FORMATTER.format(self.asn)
 
     def get_router_name(self):
         return self.router_name
 
+    def get_host_name(self):
+        return self.host_name
+
     def get_host_name_ip_gw(self):
         return self.host_name, self.host_ip, self.host_gw
 
-    @staticmethod
-    def get_wan_ip_pair():
-        ip_3th = Region.WAN_LINKS * 2 ** (IP_BITS - WAN_IP_MASK) / 256
-        ip_4th = Region.WAN_LINKS * 2 ** (IP_BITS - WAN_IP_MASK) % 256
-        Region.WAN_LINKS += 1
-        return WAN_IP_FORMATTER.format(ip_3th, ip_4th + 1), WAN_IP_FORMATTER.format(ip_3th, ip_4th + 2)
+    def add_lan_interface(self, *iface_id_ip_ipv6):
+        self.lan_interfaces.append(iface_id_ip_ipv6)
 
-    def add_lan_interface(self, *iface_id_ip):
-        self.lan_interfaces.append(iface_id_ip)
+    def add_wan_interface(self, *iface_id_ip_ipv6):
+        self.wan_interfaces.append(iface_id_ip_ipv6)
 
-    def add_wan_interface(self, *iface_id_ip):
-        self.wan_interfaces.append(iface_id_ip)
-
-    def add_neighbor(self, *neighbor_ip_asn):
-        self.neighbors.append(neighbor_ip_asn)
+    def add_neighbor(self, *neighbor_asn_ip_ipv6):
+        self.neighbors.append(neighbor_asn_ip_ipv6)
 
     def connect_lan(self, router_interface_id):
-        self.local_intf_id = router_interface_id
-        self.add_lan_interface(router_interface_id, self.host_gw + '/' + str(LAN_IP_MASK))
+        self.lan_intf_id = router_interface_id
+        self.add_lan_interface(router_interface_id, self.lan_intf_ip, self.lan_intf_ipv6)
 
     def connect_wan(self, neighbor, interface_ids):
         assert isinstance(neighbor, Region)
         assert len(interface_ids) == 2
         local_intf_id, remote_intf_id = interface_ids
-        local_ip, remote_ip = self.get_wan_ip_pair()
 
-        self.add_wan_interface(local_intf_id, local_ip)
-        neighbor.add_wan_interface(remote_intf_id, remote_ip)
-        self.add_neighbor(remote_ip, neighbor.asn)
-        neighbor.add_neighbor(local_ip, self.asn)
+        x, y = self.asn, neighbor.asn
+        if x > y:
+            x, y = y, x
+        local_ip = LINK_IP_FORMATTER.format(x, y, self.asn)
+        remote_ip = LINK_IP_FORMATTER.format(x, y, neighbor.asn)
+
+        local_ipv6 = LINK_IPV6_FORMATTER.format(x, y, self.asn)
+        remote_ipv6 = LINK_IPV6_FORMATTER.format(x, y, neighbor.asn)
+
+        self.add_wan_interface(local_intf_id, local_ip, local_ipv6)
+        neighbor.add_wan_interface(remote_intf_id, remote_ip, remote_ipv6)
+        self.add_neighbor(neighbor.asn, remote_ip, remote_ipv6)
+        neighbor.add_neighbor(self.asn, local_ip, local_ipv6)
 
     def get_router_info(self):
-        # TODO: ugly!
         return {
             'lan_interfaces': self.lan_interfaces,
             'wan_interfaces': self.wan_interfaces,
             'neighbors': self.neighbors,
             'asn': self.asn,
-            'local_ip': self.host_gw + '/' + str(LAN_IP_MASK),
-            'local_intf_id': self.local_intf_id
+            'local_ip': self.lan_intf_ip,
+            'local_ipv6': self.lan_intf_ipv6,
+            'local_intf_id': self.lan_intf_id
+        }
+
+    def get_host_info(self):
+        return {
+            'host_ip': self.host_ip,
+            'host_gw': self.host_gw,
+            'host_ipv6': self.host_ipv6,
+            'host_gw_ipv6': self.host_gw_ipv6
         }

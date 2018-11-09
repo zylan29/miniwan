@@ -5,7 +5,6 @@ from miniwan.wannet.region import Region
 
 
 class WanTopo(Topo):
-    # TODO: use 'build' to build topology, instead of __init__.
     def __init__(self, topo_file='../conf/simple.yaml'):
         Topo.__init__(self)
         self.host2router = {}
@@ -52,6 +51,11 @@ class WanTopo(Topo):
             router_info = regions[region_name].get_router_info()
             router_info.update(self.nodeInfo(router_name))
             self.setNodeInfo(router_name, router_info)
+
+            host_name = regions[region_name].get_host_name()
+            host_info = regions[region_name].get_host_info()
+            host_info.update(self.nodeInfo(host_name))
+            self.setNodeInfo(host_name, host_info)
 
     def get_router_name(self, host_name):
         return self.host2router[host_name]
