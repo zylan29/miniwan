@@ -54,9 +54,6 @@ class Region(object):
     def get_host_name(self):
         return self.host_name
 
-    def get_host_name_ip_gw(self):
-        return self.host_name, self.host_ip, self.host_gw
-
     def add_lan_interface(self, *iface_id_ip_ipv6):
         self.lan_interfaces.append(iface_id_ip_ipv6)
 

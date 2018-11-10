@@ -25,7 +25,7 @@ class WanTopo(Topo):
         # Connect region host to region router
         for region_name in regions:
             region = regions[region_name]
-            host_name, host_ip, host_gw = region.get_host_name_ip_gw()
+            host_name = region.get_host_name()
             self.addHost(host_name, **region.get_host_info())
             router_name = region.get_router_name()
             self.addSwitch(router_name)
