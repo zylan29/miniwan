@@ -29,10 +29,7 @@ class WanRouter(Switch):
         return
 
     def start(self, controllers):
-        pass
-
-    def stop(self):
-        self.deleteIntfs()
+        raise NotImplementedError()
 
 
 class ZebraRouter(WanRouter):
@@ -80,13 +77,17 @@ class ZebraRouter(WanRouter):
         self.waitOutput()
         print("Starting zebra on %s" % self.name)
 
+    def start(self, controllers):
+        self.generate_zebra_cfg()
+        self.start_zebra()
+
     def stop_quagga(self):
         self.cmd('killall -9 zebra bgpd ospfd')
         self.waitOutput()
 
-    def stop(self):
+    def stop(self, deleteIntfs=True):
+        super(ZebraRouter, self).stop(deleteIntfs)
         self.stop_quagga()
-        self.deleteIntfs()
 
 
 # TODO: use ospf6d to support ipv6
@@ -100,10 +101,9 @@ class OspfRouter(ZebraRouter):
         super(OspfRouter, self).__init__(name, **kwargs)
         self.ospf_cfg_file = ''
 
-    def start_route(self):
-        self.generate_zebra_cfg()
+    def start(self, controllers):
+        super(OspfRouter, self).start(controllers)
         self.generate_ospf_cfg()
-        self.start_zebra()
         self.start_ospfd()
 
     def generate_ospf_cfg(self, dst_path='/etc/quagga/miniwan'):
@@ -154,10 +154,9 @@ class BgpRouter(ZebraRouter):
         super(BgpRouter, self).__init__(name, **kwargs)
         self.bgp_cfg_file = ''
 
-    def start_route(self):
-        self.generate_zebra_cfg()
+    def start(self, controllers):
+        super(BgpRouter, self).start(controllers)
         self.generate_bgp_cfg()
-        self.start_zebra()
         self.start_bgpd()
 
     def generate_bgp_cfg(self, dst_path='/etc/quagga/miniwan'):

@@ -32,14 +32,3 @@ class WanNet(Mininet):
         else:
             raise ValueError('Unsupported routing protocol: {}.'.format(protocol))
         super(WanNet, self).__init__(**kwargs)
-
-    def start(self):
-        super(WanNet, self).start()
-
-        if self.protocol in ['ospf', 'bgp']:
-            for router in self.switches:
-                router.enable_route()
-            print('wait {} seconds for sysctl changes to take effect...'.format(SYSCTL_SLEEP))
-            time.sleep(SYSCTL_SLEEP)
-            for router in self.switches:
-                router.start_route()

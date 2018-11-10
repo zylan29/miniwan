@@ -93,6 +93,7 @@ class Region(object):
         neighbor.add_neighbor(self.asn, local_ip, local_ipv6)
 
     def get_router_info(self):
+        # TODO: rename these parameters
         return {
             'router_id': self.router_id,
             'lan_interfaces': self.lan_interfaces,
