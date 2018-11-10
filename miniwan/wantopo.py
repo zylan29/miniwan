@@ -1,7 +1,7 @@
 import yaml
 from mininet.topo import Topo
 
-from miniwan.wannet.region import Region
+from miniwan.region import Region
 
 
 class WanTopo(Topo):

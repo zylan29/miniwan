@@ -1,12 +1,10 @@
-import time
-
 from mininet.link import TCLink
 from mininet.net import Mininet
 
-from miniwan.wannet.wanhost import WanHost
-from miniwan.wannet.quaggarouter import BgpRouter
-from miniwan.wannet.quaggarouter import OspfRouter
-from miniwan.wannet.wantopo import WanTopo
+from miniwan.wanhost import WanHost
+from miniwan.quaggarouter import BgpRouter
+from miniwan.quaggarouter import OspfRouter
+from miniwan.wantopo import WanTopo
 from miniwan.ipv6patch import applyIPv6Patch
 
 SYSCTL_SLEEP = 5

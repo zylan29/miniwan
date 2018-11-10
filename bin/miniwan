@@ -3,7 +3,7 @@ import argparse
 import sys
 sys.path.append('..')
 
-from miniwan.wannet.wannet import WanNet
+from miniwan.wannet import WanNet
 from mininet.cli import CLI
 from mininet.log import setLogLevel
 
