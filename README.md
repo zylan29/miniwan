@@ -65,10 +65,12 @@ Note: Quagga configuration files should be in a directory that user `quagga` can
 ```bash
 # cd bin
 # python miniwan -h
-usage: miniwan [-h] [-t TOPOLOGY] [-p {bgp,ospf}] [-l {info,debug}]
+usage: miniwan [-h] [-4] [-6] [-t TOPOLOGY] [-p {bgp,ospf}] [-l {info,debug}]
 
 optional arguments:
   -h, --help            show this help message and exit
+  -4, --ipv4            pure IPv4 WAN
+  -6, --ipv6            pure IPv6 WAN
   -t TOPOLOGY, --topology TOPOLOGY
                         topology file
   -p {bgp,ospf}, --protocol {bgp,ospf}
